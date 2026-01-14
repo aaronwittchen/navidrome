@@ -4,7 +4,7 @@ Self-hosted music streaming server using Navidrome.
 
 ## Prerequisites
 
-### 1. Set up NFS Server on Arch VM (192.168.68.105)
+### Set up NFS Server on Arch VM (192.168.68.105)
 
 On your Arch VM, install and configure NFS server to share the Music folder:
 
@@ -20,49 +20,41 @@ EOF
 # Enable and start NFS services
 sudo systemctl enable --now nfs-server
 sudo exportfs -arv
-
-# Open firewall if needed (or ensure firewall allows NFS)
-# sudo firewall-cmd --permanent --add-service=nfs
-# sudo firewall-cmd --reload
-```
-
-### 2. Verify NFS Export
-
-From any K8s node, verify you can access the NFS share:
-
-```bash
-# Install nfs-utils on NixOS nodes if needed
-# Then test mount
-sudo mount -t nfs 192.168.68.105:/home/onion/Music /mnt
-ls /mnt
-sudo umount /mnt
 ```
 
 ## Deployment
 
-### Using Longhorn Storage (Recommended)
+### Automated (Recommended)
+
+Use the Ansible playbook which handles everything:
 
 ```bash
-kubectl apply -k overlays/longhorn
+cd ansible
+ansible-playbook -i inventory/hosts.yml playbooks/12-setup-nfs-client.yml
 ```
 
-### Using Default Storage Class
+This will:
+1. Enable NFS client support on all K8s nodes
+2. Rebuild NixOS configuration
+3. Test NFS connectivity
+4. Deploy Navidrome with Longhorn storage
+5. Add DNS entry to Pi-hole
+
+### Manual Deployment
+
+If NFS client is already configured on your nodes:
 
 ```bash
-kubectl apply -k base
-```
+# Using Longhorn storage
+kubectl apply -k navidrome/overlays/longhorn
 
-## DNS Setup
-
-Add to your DNS or `/etc/hosts`:
-
-```
-<GATEWAY_IP>  navidrome.k8s.local
+# Using default storage class
+kubectl apply -k navidrome/base
 ```
 
 ## Access
 
-Once deployed, access Navidrome at: https://navidrome.k8s.local
+URL: https://navidrome.k8s.local
 
 On first access, you'll be prompted to create an admin account.
 
@@ -88,12 +80,14 @@ Environment variables in `deployment.yaml`:
 
 2. Check exports:
    ```bash
-   exportfs -v
+   sudo exportfs -v
    ```
 
-3. Test from a K8s node:
+3. Test mount from a K8s node:
    ```bash
-   showmount -e 192.168.68.105
+   sudo mount -t nfs 192.168.68.105:/home/onion/Music /mnt
+   ls /mnt
+   sudo umount /mnt
    ```
 
 ### Music not showing up
