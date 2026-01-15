@@ -91,7 +91,7 @@ spec:
             claimName: navidrome-data-pvc
         - name: music
           persistentVolumeClaim:
-            claimName: navidrome-music-pvc
+            claimName: navidrome-music-local-pvc
 ---
 apiVersion: v1
 kind: Service
